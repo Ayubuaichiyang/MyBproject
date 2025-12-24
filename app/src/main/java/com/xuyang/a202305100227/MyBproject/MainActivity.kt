@@ -70,7 +70,7 @@ class MainActivity : AppCompatActivity() {
         updateFilter()
 
         val fab: View = findViewById(R.id.fab)
-        fab.setOnClickListener { view ->
+        fab.setOnClickListener { _ ->
             todoHelper.showAddTodoDialog(viewModel)
         }
     }
