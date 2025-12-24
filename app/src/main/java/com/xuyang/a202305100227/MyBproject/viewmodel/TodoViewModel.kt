@@ -17,12 +17,6 @@ class TodoViewModel(private val repository: TodoRepository) : ViewModel() {
     private val _searchResults = MutableLiveData<List<Todo>>()
     val searchResults: LiveData<List<Todo>> = _searchResults
 
-    // 当前搜索的LiveData和观察者
-    private var currentSearchLiveData: LiveData<List<Todo>>? = null
-    private val currentSearchObserver = androidx.lifecycle.Observer<List<Todo>> { todos ->
-        _searchResults.postValue(todos)
-    }
-
     // 插入
     fun insert(todo: Todo) = viewModelScope.launch {
         repository.insert(todo)
@@ -38,20 +32,6 @@ class TodoViewModel(private val repository: TodoRepository) : ViewModel() {
         repository.delete(todo)
     }
 
-    // 搜索
-    fun searchTodos(searchQuery: String) {
-        // 移除之前的观察者
-        currentSearchLiveData?.removeObserver(currentSearchObserver)
-
-        // 获取新的搜索LiveData
-        val newSearchLiveData = repository.searchTodos(searchQuery)
-
-        // 添加新的观察者
-        newSearchLiveData.observeForever(currentSearchObserver)
-
-        // 更新当前LiveData引用
-        currentSearchLiveData = newSearchLiveData
-    }
 
     // 筛选：全部/已完成/未完成
     fun filterTodos(todos: List<Todo>?, isShowAll: Boolean, isShowCompleted: Boolean, isShowUncompleted: Boolean): List<Todo> {

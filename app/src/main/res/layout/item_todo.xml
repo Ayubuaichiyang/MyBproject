@@ -1,70 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.chauthai.swipereveallayout.SwipeRevealLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginVertical="4dp"
-    app:mode="normal"
-    app:dragEdge="right">
+    android:background="#FFFFFF"
+    android:orientation="horizontal"
+    android:padding="16dp">
 
-    <!-- 右滑显示的删除按钮 -->
-    <LinearLayout
-        android:layout_width="100dp"
-        android:layout_height="match_parent"
-        android:background="#F5F5F5"
-        android:gravity="center"
-        android:orientation="horizontal">
-
-        <ImageButton
-            android:id="@+id/btn_delete"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@null"
-            android:contentDescription="删除"
-            android:src="@android:drawable/ic_menu_delete"
-            app:tint="#FF4444" />
-    </LinearLayout>
-
-    <!-- 主内容区域 -->
-    <LinearLayout
-        android:layout_width="match_parent"
+    <!-- 勾选框 -->
+    <CheckBox
+        android:id="@+id/cb_todo_completed"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
-        android:orientation="horizontal"
-        android:padding="16dp">
+        android:layout_gravity="center_vertical" />
 
-        <!-- 勾选框 -->
-        <CheckBox
-            android:id="@+id/cb_todo_completed"
+    <!-- 内容区域 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- 任务名 -->
+        <TextView
+            android:id="@+id/tv_todo_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical" />
+            android:textSize="16sp"
+            android:textStyle="bold" />
 
-        <!-- 内容区域 -->
-        <LinearLayout
-            android:layout_width="0dp"
+        <!-- 提醒时间 -->
+        <TextView
+            android:id="@+id/tv_reminder_time"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:layout_marginTop="4dp"
+            android:textSize="12sp" />
 
-            <!-- 任务名 -->
-            <TextView
-                android:id="@+id/tv_todo_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <!-- 提醒时间 -->
-            <TextView
-                android:id="@+id/tv_reminder_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textSize="12sp"/>
-
-        </LinearLayout>
     </LinearLayout>
 
-</com.chauthai.swipereveallayout.SwipeRevealLayout>
+    <!-- 删除按钮 -->
+    <ImageButton
+        android:id="@+id/ib_delete_todo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:layout_marginStart="16dp"
+        android:background="@null"
+        android:src="@android:drawable/ic_menu_delete"
+        app:tint="#FF0000" />
+
+</LinearLayout>

@@ -36,7 +36,7 @@ class TodoAdapter(
         private val cbCompleted: CheckBox = itemView.findViewById(R.id.cb_todo_completed)
         private val tvTodoName: TextView = itemView.findViewById(R.id.tv_todo_name)
         private val tvReminderTime: TextView = itemView.findViewById(R.id.tv_reminder_time)
-        private val btnDelete: ImageButton = itemView.findViewById(R.id.btn_delete)
+        private val ibDeleteTodo: ImageButton = itemView.findViewById(R.id.ib_delete_todo)
 
         fun bind(
             todo: Todo,
@@ -72,7 +72,7 @@ class TodoAdapter(
             }
 
             // 点击删除按钮
-            btnDelete.setOnClickListener {
+            ibDeleteTodo.setOnClickListener {
                 onDeleteClick(todo)
             }
         }

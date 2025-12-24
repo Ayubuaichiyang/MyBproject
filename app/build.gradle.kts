@@ -47,7 +47,7 @@ dependencies {
 
     implementation(libs.androidx.activity.ktx)
     implementation(libs.recyclerview)
-    implementation(libs.swipereveallayout.swipe.reveal.layout)
+//    implementation(libs.swipereveallayout.swipe.reveal.layout)
 
     implementation(libs.androidx.room.common.jvm)
     implementation(libs.androidx.room.ktx)

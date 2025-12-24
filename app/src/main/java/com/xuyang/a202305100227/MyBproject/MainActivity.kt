@@ -121,7 +121,7 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
                 viewModel.update(updatedTodo)
             },
             onDeleteClick = { todo ->
-                // 删除待办事项
+                // 从数据库中删除待办事项
                 viewModel.delete(todo)
                 Toast.makeText(this, "待办事项已删除", Toast.LENGTH_SHORT).show()
             }
@@ -138,6 +138,11 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
                 cbCompleted.isChecked = false
                 cbUncompleted.isChecked = false
                 filterTodos()
+            } else {
+                // 如果取消选择全部，确保至少选择一个其他选项
+                if (!cbCompleted.isChecked && !cbUncompleted.isChecked) {
+                    cbAll.isChecked = true // 恢复选择全部
+                }
             }
         }
 
@@ -147,6 +152,11 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
                 cbAll.isChecked = false
                 cbUncompleted.isChecked = false
                 filterTodos()
+            } else {
+                // 如果取消选择已完成，确保至少选择一个其他选项
+                if (!cbAll.isChecked && !cbUncompleted.isChecked) {
+                    cbAll.isChecked = true // 恢复选择全部
+                }
             }
         }
 
@@ -156,6 +166,11 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
                 cbAll.isChecked = false
                 cbCompleted.isChecked = false
                 filterTodos()
+            } else {
+                // 如果取消选择未完成，确保至少选择一个其他选项
+                if (!cbAll.isChecked && !cbCompleted.isChecked) {
+                    cbAll.isChecked = true // 恢复选择全部
+                }
             }
         }
     }
@@ -328,13 +343,7 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
 
     private fun searchTodos(searchQuery: String) {
         currentSearchQuery = searchQuery
-        if (searchQuery.isEmpty()) {
-            // 如果搜索查询为空，显示所有待办事项（并应用当前筛选条件）
-            filterTodos()
-        } else {
-            // 否则，进行搜索
-            viewModel.searchTodos(searchQuery)
-        }
+        filterTodos()
     }
 
     private fun filterTodos() {
@@ -342,15 +351,20 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
         val isShowCompleted = cbCompleted.isChecked
         val isShowUncompleted = cbUncompleted.isChecked
 
-        if (currentSearchQuery.isEmpty()) {
-            // 如果没有搜索查询，直接筛选所有待办事项
-            val filteredTodos = viewModel.filterTodos(allTodos, isShowAll, isShowCompleted, isShowUncompleted)
-            adapter.submitList(filteredTodos)
-            updateTotalCount(filteredTodos.size)
+        // 首先根据搜索查询过滤数据
+        val searchedTodos = if (currentSearchQuery.isEmpty()) {
+            allTodos
         } else {
-            // 如果有搜索查询，重新执行搜索
-            viewModel.searchTodos(currentSearchQuery)
+            allTodos.filter { todo ->
+                todo.name.contains(currentSearchQuery, ignoreCase = true) || 
+                todo.note.contains(currentSearchQuery, ignoreCase = true)
+            }
         }
+
+        // 然后根据筛选条件进一步过滤
+        val filteredTodos = viewModel.filterTodos(searchedTodos, isShowAll, isShowCompleted, isShowUncompleted)
+        adapter.submitList(filteredTodos)
+        updateTotalCount(filteredTodos.size)
     }
 
     private fun updateTotalCount(count: Int) {
