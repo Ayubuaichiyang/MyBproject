@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -16,7 +17,8 @@ import java.util.Locale
 
 class TodoAdapter(
     private val onItemClick: (Todo) -> Unit,
-    private val onCheckboxClick: (Todo) -> Unit
+    private val onCheckboxClick: (Todo) -> Unit,
+    private val onDeleteClick: (Todo) -> Unit
 ) : ListAdapter<Todo, TodoAdapter.TodoViewHolder>(TodoDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TodoViewHolder {
@@ -27,22 +29,24 @@ class TodoAdapter(
 
     override fun onBindViewHolder(holder: TodoViewHolder, position: Int) {
         val todo = getItem(position)
-        holder.bind(todo, onItemClick, onCheckboxClick)
+        holder.bind(todo, onItemClick, onCheckboxClick, onDeleteClick)
     }
 
     class TodoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val cbCompleted: CheckBox = itemView.findViewById(R.id.cb_todo_completed)
         private val tvTodoName: TextView = itemView.findViewById(R.id.tv_todo_name)
         private val tvReminderTime: TextView = itemView.findViewById(R.id.tv_reminder_time)
+        private val btnDelete: ImageButton = itemView.findViewById(R.id.btn_delete)
 
         fun bind(
             todo: Todo,
             onItemClick: (Todo) -> Unit,
-            onCheckboxClick: (Todo) -> Unit
+            onCheckboxClick: (Todo) -> Unit,
+            onDeleteClick: (Todo) -> Unit
         ) {
             tvTodoName.text = todo.name
             cbCompleted.isChecked = todo.isCompleted
-            
+
             // 格式化提醒时间
             val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
             val timeText = dateFormat.format(Date(todo.reminderTime))
@@ -65,6 +69,11 @@ class TodoAdapter(
             // 点击复选框
             cbCompleted.setOnClickListener {
                 onCheckboxClick(todo)
+            }
+
+            // 点击删除按钮
+            btnDelete.setOnClickListener {
+                onDeleteClick(todo)
             }
         }
     }

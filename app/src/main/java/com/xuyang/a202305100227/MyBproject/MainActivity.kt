@@ -119,6 +119,11 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
                 // 切换完成状态并保存到数据库
                 val updatedTodo = todo.copy(isCompleted = !todo.isCompleted)
                 viewModel.update(updatedTodo)
+            },
+            onDeleteClick = { todo ->
+                // 删除待办事项
+                viewModel.delete(todo)
+                Toast.makeText(this, "待办事项已删除", Toast.LENGTH_SHORT).show()
             }
         )
 
