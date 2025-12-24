@@ -27,6 +27,6 @@ interface TodoDao {
     fun getAllTodos(): LiveData<List<Todo>>
 
     // 搜索（按名称或备注）
-    @Query("SELECT * FROM todo_table WHERE name LIKE :searchQuery OR note LIKE :searchQuery ORDER BY reminderTime")
-    fun searchTodos(searchQuery: String): LiveData<List<Todo>>
+//    @Query("SELECT * FROM todo_table WHERE name LIKE :searchQuery OR note LIKE :searchQuery ORDER BY reminderTime")
+//    fun searchTodos(searchQuery: String): LiveData<List<Todo>>
 }

@@ -1,8 +1,6 @@
 package com.xuyang.a202305100227.MyBproject
 
 import android.os.Bundle
-import android.text.TextUtils
-import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -13,25 +11,15 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.widget.CheckBox
-import android.widget.TextView
 import com.google.android.material.textfield.TextInputEditText
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
-import android.widget.Button
-import android.widget.DatePicker
-import android.widget.TimePicker
 import com.xuyang.a202305100227.MyBproject.adapter.TodoAdapter
 import com.xuyang.a202305100227.MyBproject.db.TodoDatabase
 import com.xuyang.a202305100227.MyBproject.db.TodoRepository
-import com.xuyang.a202305100227.MyBproject.db.entity.Todo
+import com.xuyang.a202305100227.MyBproject.utils.TodoHelper
 import com.xuyang.a202305100227.MyBproject.viewmodel.TodoViewModel
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
 
-class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, TimePickerDialog.OnTimeSetListener {
+class MainActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: TodoAdapter
     private lateinit var tvTotalCount: android.widget.TextView
@@ -40,17 +28,9 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
     private lateinit var cbUncompleted: CheckBox
     private lateinit var textInputLayout: com.google.android.material.textfield.TextInputLayout
     private lateinit var etSearch: TextInputEditText
-    private var allTodos: List<Todo> = emptyList()
     private var currentSearchQuery: String = ""
 
-    // 日期时间选择相关变量
-    private var selectedYear = 0
-    private var selectedMonth = 0
-    private var selectedDay = 0
-    private var selectedHour = 0
-    private var selectedMinute = 0
-    private var currentReminderTime: Long = 0
-    private lateinit var currentReminderTextView: TextView
+    private lateinit var todoHelper: TodoHelper
 
     private val viewModel: TodoViewModel by viewModels {
         val database = TodoDatabase.getDatabase(application)
@@ -80,12 +60,18 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
         // 设置搜索监听
         setupSearchListener()
 
+        // 初始化待办事项助手
+        todoHelper = TodoHelper(this)
+
         // 观察数据变化
         observeData()
 
+        // 初始化筛选条件
+        updateFilter()
+
         val fab: View = findViewById(R.id.fab)
         fab.setOnClickListener { view ->
-            showAddTodoDialog()
+            todoHelper.showAddTodoDialog(viewModel)
         }
     }
 
@@ -105,7 +91,8 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
             // 让搜索框失去焦点
             etSearch.clearFocus()
             // 重置搜索
-            searchTodos("")
+            currentSearchQuery = ""
+            viewModel.setSearchQuery("")
         }
     }
 
@@ -113,7 +100,7 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
         adapter = TodoAdapter(
             onItemClick = { todo ->
                 // 点击item显示详情并可以编辑
-                showEditTodoDialog(todo)
+                todoHelper.showEditTodoDialog(todo, viewModel)
             },
             onCheckboxClick = { todo ->
                 // 切换完成状态并保存到数据库
@@ -137,7 +124,7 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
             if (cbAll.isChecked) {
                 cbCompleted.isChecked = false
                 cbUncompleted.isChecked = false
-                filterTodos()
+                updateFilter()
             } else {
                 // 如果取消选择全部，确保至少选择一个其他选项
                 if (!cbCompleted.isChecked && !cbUncompleted.isChecked) {
@@ -151,7 +138,7 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
             if (cbCompleted.isChecked) {
                 cbAll.isChecked = false
                 cbUncompleted.isChecked = false
-                filterTodos()
+                updateFilter()
             } else {
                 // 如果取消选择已完成，确保至少选择一个其他选项
                 if (!cbAll.isChecked && !cbUncompleted.isChecked) {
@@ -165,7 +152,7 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
             if (cbUncompleted.isChecked) {
                 cbAll.isChecked = false
                 cbCompleted.isChecked = false
-                filterTodos()
+                updateFilter()
             } else {
                 // 如果取消选择未完成，确保至少选择一个其他选项
                 if (!cbAll.isChecked && !cbCompleted.isChecked) {
@@ -173,6 +160,16 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
                 }
             }
         }
+    }
+
+    /**
+     * 更新筛选条件到ViewModel
+     */
+    private fun updateFilter() {
+        val isShowAll = cbAll.isChecked
+        val isShowCompleted = cbCompleted.isChecked
+        val isShowUncompleted = cbUncompleted.isChecked
+        viewModel.setFilter(isShowAll, isShowCompleted, isShowUncompleted)
     }
 
     private fun setupSearchListener() {
@@ -184,7 +181,8 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 // 文本变化时进行搜索
                 val searchQuery = s?.toString() ?: ""
-                searchTodos(searchQuery)
+                currentSearchQuery = searchQuery
+                viewModel.setSearchQuery(searchQuery)
             }
 
             override fun afterTextChanged(s: android.text.Editable?) {
@@ -194,239 +192,16 @@ class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, Ti
     }
 
     private fun observeData() {
-        // 观察所有待办事项
-        viewModel.allTodos.observe(this, Observer { todos ->
+        // 观察筛选后的待办事项
+        viewModel.filteredTodos.observe(this, Observer { todos ->
             todos?.let {
-                allTodos = it
-                filterTodos()
+                adapter.submitList(it)
+                updateTotalCount(it.size)
             }
         })
-
-        // 观察搜索结果
-        viewModel.searchResults.observe(this, Observer { searchResults ->
-            searchResults?.let {
-                // 对搜索结果应用当前筛选条件
-                val isShowAll = cbAll.isChecked
-                val isShowCompleted = cbCompleted.isChecked
-                val isShowUncompleted = cbUncompleted.isChecked
-
-                val filteredSearchResults = viewModel.filterTodos(it, isShowAll, isShowCompleted, isShowUncompleted)
-                adapter.submitList(filteredSearchResults)
-                updateTotalCount(filteredSearchResults.size)
-            }
-        })
-    }
-
-
-    private fun showAddTodoDialog() {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_todo, null)
-        val etName: TextInputEditText = dialogView.findViewById(R.id.et_name)
-        val etNote: TextInputEditText = dialogView.findViewById(R.id.et_note)
-        val tvReminderTime: TextView = dialogView.findViewById(R.id.tv_reminder_time)
-        val btnSelectTime: Button = dialogView.findViewById(R.id.btn_select_time)
-
-        // 使用系统当前时间作为默认时间
-        val calendar = Calendar.getInstance()
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-        val defaultTime = calendar.timeInMillis
-
-        // 设置点击事件，用于选择日期时间
-        currentReminderTime = defaultTime
-        currentReminderTextView = tvReminderTime
-        btnSelectTime.setOnClickListener {
-            showDatePickerDialog()
-        }
-
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle("添加待办事项")
-            .setView(dialogView)
-            .setPositiveButton("确定", null) // 先设置为null，稍后手动处理
-            .setNegativeButton("取消", null)
-            .create()
-
-        // 手动处理确定按钮点击，以便验证失败时不关闭对话框
-        dialog.setOnShowListener {
-            val positiveButton = dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
-            positiveButton.setOnClickListener {
-                val name = etName.text?.toString()?.trim()
-                if (TextUtils.isEmpty(name)) {
-                    Toast.makeText(this, "请输入任务名称", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-
-                val note = etNote.text?.toString()?.trim() ?: ""
-
-                val newTodo = Todo(
-                    id = 0, // 数据库会自动生成ID
-                    name = name!!,
-                    isCompleted = false,
-                    reminderTime = currentReminderTime,
-                    note = note
-                )
-
-                // 保存到数据库
-                viewModel.insert(newTodo)
-
-                Toast.makeText(this, "待办事项已添加", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
-            }
-        }
-
-        dialog.show()
-    }
-
-    private fun showEditTodoDialog(todo: Todo) {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_todo, null)
-        val etName: TextInputEditText = dialogView.findViewById(R.id.et_name)
-        val etNote: TextInputEditText = dialogView.findViewById(R.id.et_note)
-        val cbCompleted: CheckBox = dialogView.findViewById(R.id.cb_completed)
-        val tvReminderTime: TextView = dialogView.findViewById(R.id.tv_reminder_time)
-        val btnChangeTime: Button = dialogView.findViewById(R.id.btn_change_time)
-
-        // 预填充数据
-        etName.setText(todo.name)
-        etNote.setText(todo.note)
-        cbCompleted.isChecked = todo.isCompleted
-
-        // 格式化并显示时间
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-        val timeText = dateFormat.format(java.util.Date(todo.reminderTime))
-        tvReminderTime.text = timeText
-        tvReminderTime.visibility = View.VISIBLE
-
-        // 设置点击事件，用于选择日期时间
-        currentReminderTime = todo.reminderTime
-        currentReminderTextView = tvReminderTime
-        btnChangeTime.setOnClickListener {
-            showDatePickerDialog()
-        }
-
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle("编辑待办事项")
-            .setView(dialogView)
-            .setPositiveButton("保存", null) // 先设置为null，稍后手动处理
-            .setNegativeButton("取消", null)
-            .create()
-
-        // 手动处理确定按钮点击，以便验证失败时不关闭对话框
-        dialog.setOnShowListener {
-            val positiveButton = dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
-            positiveButton.setOnClickListener {
-                val name = etName.text?.toString()?.trim()
-                if (TextUtils.isEmpty(name)) {
-                    Toast.makeText(this, "请输入任务名称", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-
-                val note = etNote.text?.toString()?.trim() ?: ""
-                val isCompleted = cbCompleted.isChecked
-
-                // 更新待办事项
-                val updatedTodo = todo.copy(
-                    name = name!!,
-                    note = note,
-                    isCompleted = isCompleted,
-                    reminderTime = currentReminderTime
-                )
-
-                // 保存到数据库
-                viewModel.update(updatedTodo)
-
-                Toast.makeText(this, "待办事项已更新", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
-            }
-        }
-
-        dialog.show()
-    }
-
-    private fun searchTodos(searchQuery: String) {
-        currentSearchQuery = searchQuery
-        filterTodos()
-    }
-
-    private fun filterTodos() {
-        val isShowAll = cbAll.isChecked
-        val isShowCompleted = cbCompleted.isChecked
-        val isShowUncompleted = cbUncompleted.isChecked
-
-        // 首先根据搜索查询过滤数据
-        val searchedTodos = if (currentSearchQuery.isEmpty()) {
-            allTodos
-        } else {
-            allTodos.filter { todo ->
-                todo.name.contains(currentSearchQuery, ignoreCase = true) || 
-                todo.note.contains(currentSearchQuery, ignoreCase = true)
-            }
-        }
-
-        // 然后根据筛选条件进一步过滤
-        val filteredTodos = viewModel.filterTodos(searchedTodos, isShowAll, isShowCompleted, isShowUncompleted)
-        adapter.submitList(filteredTodos)
-        updateTotalCount(filteredTodos.size)
     }
 
     private fun updateTotalCount(count: Int) {
         tvTotalCount.text = "全部代办：$count"
-    }
-
-    // 显示日期选择对话框
-    private fun showDatePickerDialog() {
-        val calendar = Calendar.getInstance()
-        calendar.timeInMillis = currentReminderTime
-
-        // 初始化默认日期为当前提醒时间
-        selectedYear = calendar.get(Calendar.YEAR)
-        selectedMonth = calendar.get(Calendar.MONTH)
-        selectedDay = calendar.get(Calendar.DAY_OF_MONTH)
-
-        val datePickerDialog = DatePickerDialog(
-            this,
-            this,
-            selectedYear,
-            selectedMonth,
-            selectedDay
-        )
-        datePickerDialog.show()
-    }
-
-    // 日期选择器回调方法
-    override fun onDateSet(view: DatePicker?, year: Int, month: Int, dayOfMonth: Int) {
-        selectedYear = year
-        selectedMonth = month
-        selectedDay = dayOfMonth
-
-        // 日期选择后自动显示时间选择对话框
-        val calendar = Calendar.getInstance()
-        calendar.timeInMillis = currentReminderTime
-        selectedHour = calendar.get(Calendar.HOUR_OF_DAY)
-        selectedMinute = calendar.get(Calendar.MINUTE)
-
-        val timePickerDialog = TimePickerDialog(
-            this,
-            this,
-            selectedHour,
-            selectedMinute,
-            true
-        )
-        timePickerDialog.show()
-    }
-
-    // 时间选择器回调方法
-    override fun onTimeSet(view: TimePicker?, hourOfDay: Int, minute: Int) {
-        selectedHour = hourOfDay
-        selectedMinute = minute
-
-        // 更新提醒时间
-        val calendar = Calendar.getInstance()
-        calendar.set(selectedYear, selectedMonth, selectedDay, selectedHour, selectedMinute, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-        currentReminderTime = calendar.timeInMillis
-
-        // 更新显示并设置可见
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-        currentReminderTextView.text = dateFormat.format(java.util.Date(currentReminderTime))
-        currentReminderTextView.visibility = View.VISIBLE
     }
 }

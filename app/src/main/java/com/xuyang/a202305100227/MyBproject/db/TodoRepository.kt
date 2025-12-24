@@ -23,7 +23,7 @@ class TodoRepository(private val todoDao: TodoDao) {
     }
 
     // 搜索
-    fun searchTodos(searchQuery: String): LiveData<List<Todo>> {
-        return todoDao.searchTodos("%$searchQuery%") // 模糊查询
-    }
+//    fun searchTodos(searchQuery: String): LiveData<List<Todo>> {
+//        return todoDao.searchTodos("%$searchQuery%") // 模糊查询
+//    }
 }
