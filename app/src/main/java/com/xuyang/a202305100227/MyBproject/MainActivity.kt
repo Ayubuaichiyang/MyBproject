@@ -17,6 +17,11 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.widget.CheckBox
 import android.widget.TextView
 import com.google.android.material.textfield.TextInputEditText
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.widget.Button
+import android.widget.DatePicker
+import android.widget.TimePicker
 import com.xuyang.a202305100227.MyBproject.adapter.TodoAdapter
 import com.xuyang.a202305100227.MyBproject.db.TodoDatabase
 import com.xuyang.a202305100227.MyBproject.db.TodoRepository
@@ -26,7 +31,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), DatePickerDialog.OnDateSetListener, TimePickerDialog.OnTimeSetListener {
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: TodoAdapter
     private lateinit var tvTotalCount: android.widget.TextView
@@ -37,6 +42,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etSearch: TextInputEditText
     private var allTodos: List<Todo> = emptyList()
     private var currentSearchQuery: String = ""
+
+    // 日期时间选择相关变量
+    private var selectedYear = 0
+    private var selectedMonth = 0
+    private var selectedDay = 0
+    private var selectedHour = 0
+    private var selectedMinute = 0
+    private var currentReminderTime: Long = 0
+    private lateinit var currentReminderTextView: TextView
 
     private val viewModel: TodoViewModel by viewModels {
         val database = TodoDatabase.getDatabase(application)
@@ -189,19 +203,20 @@ class MainActivity : AppCompatActivity() {
         val etName: TextInputEditText = dialogView.findViewById(R.id.et_name)
         val etNote: TextInputEditText = dialogView.findViewById(R.id.et_note)
         val tvReminderTime: TextView = dialogView.findViewById(R.id.tv_reminder_time)
+        val btnSelectTime: Button = dialogView.findViewById(R.id.btn_select_time)
 
-        // 计算默认时间（当前时间+1小时）并显示
+        // 使用系统当前时间作为默认时间
         val calendar = Calendar.getInstance()
-        calendar.add(Calendar.HOUR_OF_DAY, 1)
-        calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
         val defaultTime = calendar.timeInMillis
 
-        // 格式化并显示时间
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-        val timeText = dateFormat.format(java.util.Date(defaultTime))
-        tvReminderTime.text = timeText
+        // 设置点击事件，用于选择日期时间
+        currentReminderTime = defaultTime
+        currentReminderTextView = tvReminderTime
+        btnSelectTime.setOnClickListener {
+            showDatePickerDialog()
+        }
 
         val dialog = MaterialAlertDialogBuilder(this)
             .setTitle("添加待办事项")
@@ -226,7 +241,7 @@ class MainActivity : AppCompatActivity() {
                     id = 0, // 数据库会自动生成ID
                     name = name!!,
                     isCompleted = false,
-                    reminderTime = defaultTime,
+                    reminderTime = currentReminderTime,
                     note = note
                 )
 
@@ -247,7 +262,7 @@ class MainActivity : AppCompatActivity() {
         val etNote: TextInputEditText = dialogView.findViewById(R.id.et_note)
         val cbCompleted: CheckBox = dialogView.findViewById(R.id.cb_completed)
         val tvReminderTime: TextView = dialogView.findViewById(R.id.tv_reminder_time)
-        val tvReminderTimeLabel: TextView = dialogView.findViewById(R.id.tv_reminder_time_label)
+        val btnChangeTime: Button = dialogView.findViewById(R.id.btn_change_time)
 
         // 预填充数据
         etName.setText(todo.name)
@@ -258,6 +273,14 @@ class MainActivity : AppCompatActivity() {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
         val timeText = dateFormat.format(java.util.Date(todo.reminderTime))
         tvReminderTime.text = timeText
+        tvReminderTime.visibility = View.VISIBLE
+
+        // 设置点击事件，用于选择日期时间
+        currentReminderTime = todo.reminderTime
+        currentReminderTextView = tvReminderTime
+        btnChangeTime.setOnClickListener {
+            showDatePickerDialog()
+        }
 
         val dialog = MaterialAlertDialogBuilder(this)
             .setTitle("编辑待办事项")
@@ -283,7 +306,8 @@ class MainActivity : AppCompatActivity() {
                 val updatedTodo = todo.copy(
                     name = name!!,
                     note = note,
-                    isCompleted = isCompleted
+                    isCompleted = isCompleted,
+                    reminderTime = currentReminderTime
                 )
 
                 // 保存到数据库
@@ -326,5 +350,64 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateTotalCount(count: Int) {
         tvTotalCount.text = "全部代办：$count"
+    }
+
+    // 显示日期选择对话框
+    private fun showDatePickerDialog() {
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = currentReminderTime
+
+        // 初始化默认日期为当前提醒时间
+        selectedYear = calendar.get(Calendar.YEAR)
+        selectedMonth = calendar.get(Calendar.MONTH)
+        selectedDay = calendar.get(Calendar.DAY_OF_MONTH)
+
+        val datePickerDialog = DatePickerDialog(
+            this,
+            this,
+            selectedYear,
+            selectedMonth,
+            selectedDay
+        )
+        datePickerDialog.show()
+    }
+
+    // 日期选择器回调方法
+    override fun onDateSet(view: DatePicker?, year: Int, month: Int, dayOfMonth: Int) {
+        selectedYear = year
+        selectedMonth = month
+        selectedDay = dayOfMonth
+
+        // 日期选择后自动显示时间选择对话框
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = currentReminderTime
+        selectedHour = calendar.get(Calendar.HOUR_OF_DAY)
+        selectedMinute = calendar.get(Calendar.MINUTE)
+
+        val timePickerDialog = TimePickerDialog(
+            this,
+            this,
+            selectedHour,
+            selectedMinute,
+            true
+        )
+        timePickerDialog.show()
+    }
+
+    // 时间选择器回调方法
+    override fun onTimeSet(view: TimePicker?, hourOfDay: Int, minute: Int) {
+        selectedHour = hourOfDay
+        selectedMinute = minute
+
+        // 更新提醒时间
+        val calendar = Calendar.getInstance()
+        calendar.set(selectedYear, selectedMonth, selectedDay, selectedHour, selectedMinute, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        currentReminderTime = calendar.timeInMillis
+
+        // 更新显示并设置可见
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+        currentReminderTextView.text = dateFormat.format(java.util.Date(currentReminderTime))
+        currentReminderTextView.visibility = View.VISIBLE
     }
 }

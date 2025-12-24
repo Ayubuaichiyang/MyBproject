@@ -22,11 +22,11 @@ interface TodoDao {
     @Delete
     suspend fun delete(todo: Todo)
 
-    // 查询所有（按时间降序）
-    @Query("SELECT * FROM todo_table ORDER BY reminderTime DESC")
+    // 查询所有
+    @Query("SELECT * FROM todo_table ORDER BY reminderTime")
     fun getAllTodos(): LiveData<List<Todo>>
 
     // 搜索（按名称或备注）
-    @Query("SELECT * FROM todo_table WHERE name LIKE :searchQuery OR note LIKE :searchQuery ORDER BY reminderTime DESC")
+    @Query("SELECT * FROM todo_table WHERE name LIKE :searchQuery OR note LIKE :searchQuery ORDER BY reminderTime")
     fun searchTodos(searchQuery: String): LiveData<List<Todo>>
 }

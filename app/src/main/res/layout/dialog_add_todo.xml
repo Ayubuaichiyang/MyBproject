@@ -25,21 +25,37 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- 提醒时间 -->
-        <TextView
-            android:id="@+id/tv_reminder_time_label"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="提醒时间："
-            android:textSize="16sp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tv_reminder_time_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="提醒时间："
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btn_select_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="选择时间" />
+
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tv_reminder_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textSize="14sp"
-            android:textColor="#666666" />
+            android:textSize="16sp"
+            android:textColor="#666666"
+            android:visibility="gone" />
 
         <!-- 备注 -->
         <com.google.android.material.textfield.TextInputLayout
